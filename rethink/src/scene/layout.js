@@ -3,8 +3,10 @@
  * placed with normalized screen coordinates (0..1, origin top-left), the same
  * way the original splash artwork is laid out.
  */
-export function createLayout(camera) {
+export function createLayout(camera, distance) {
   const layout = {
+    /** Camera distance to the z = 0 plane once the intro fly-in settles. */
+    distance,
     width: 1,
     height: 1,
     /** Compass centre as a fraction of the viewport height (from the top). */
@@ -13,7 +15,6 @@ export function createLayout(camera) {
     iconSize: 1,
 
     update() {
-      const distance = camera.position.z;
       layout.height = 2 * Math.tan((camera.fov * Math.PI) / 360) * distance;
       layout.width = layout.height * camera.aspect;
       layout.compassRadius = Math.min(layout.width * 0.135, layout.height * 0.095);

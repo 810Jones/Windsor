@@ -9,11 +9,10 @@ const STAR_TINTS = [
 ];
 
 /**
- * Background stars and out-of-focus dust, drawn directly in clip space so the
- * density stays even at any aspect ratio. `depth` (0 far .. 1 near) drives
- * pointer parallax and size.
+ * A deep 3D volume of stars plus out-of-focus dust motes. Points use
+ * perspective size attenuation, so tilting the world gives real parallax.
  */
-export function createStarfield({ stars = 1400, dust = 70 } = {}) {
+export function createStarfield({ stars = 3200, dust = 90 } = {}) {
   const count = stars + dust;
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
@@ -23,16 +22,18 @@ export function createStarfield({ stars = 1400, dust = 70 } = {}) {
 
   for (let i = 0; i < count; i++) {
     const isDust = i >= stars;
-    const depth = isDust ? 0.6 + Math.random() * 0.4 : Math.random() ** 2;
+    // Stars fill a deep slab behind the compass; dust floats closer in.
+    const z = isDust ? -2 - Math.random() * 10 : -4 - Math.random() ** 0.7 * 70;
+    const spread = 6 + (10 - z) * 0.62;
 
-    positions[i * 3] = (Math.random() * 2 - 1) * 1.08;
-    positions[i * 3 + 1] = (Math.random() * 2 - 1) * 1.08;
-    positions[i * 3 + 2] = depth;
+    positions[i * 3] = (Math.random() * 2 - 1) * spread * 1.4;
+    positions[i * 3 + 1] = (Math.random() * 2 - 1) * spread;
+    positions[i * 3 + 2] = z;
 
-    const tint = isDust ? [0.55, 0.6, 0.72] : STAR_TINTS[(Math.random() * STAR_TINTS.length) | 0];
+    const tint = isDust ? [0.5, 0.56, 0.7] : STAR_TINTS[(Math.random() * STAR_TINTS.length) | 0];
     colors.set(tint, i * 3);
 
-    sizes[i] = isDust ? 7 + Math.random() * 12 : 0.8 + depth * 2.2 + (Math.random() < 0.03 ? 2 : 0);
+    sizes[i] = isDust ? 18 + Math.random() * 26 : 1.4 + Math.random() * 2.4 + (Math.random() < 0.025 ? 3 : 0);
     phases[i] = Math.random() * Math.PI * 2;
     kinds[i] = isDust ? 1 : 0;
   }
@@ -47,7 +48,6 @@ export function createStarfield({ stars = 1400, dust = 70 } = {}) {
   const material = new THREE.ShaderMaterial({
     uniforms: {
       uTime: { value: 0 },
-      uPointer: { value: new THREE.Vector2() },
       uScale: { value: 1 },
       uOpacity: { value: 0 },
     },
@@ -57,26 +57,25 @@ export function createStarfield({ stars = 1400, dust = 70 } = {}) {
       attribute float phase;
       attribute float kind;
       uniform float uTime;
-      uniform vec2 uPointer;
       uniform float uScale;
       varying vec3 vColor;
       varying float vAlpha;
       varying float vKind;
 
       void main() {
-        float depth = position.z;
-        vec2 p = position.xy;
-        // Dust drifts slowly; everything shifts a little with the pointer.
-        p += kind * vec2(sin(uTime * 0.07 + phase), cos(uTime * 0.05 + phase * 1.3)) * 0.015;
-        p -= uPointer * (0.004 + depth * 0.02);
+        vec3 p = position;
+        p.xy += kind * vec2(sin(uTime * 0.07 + phase), cos(uTime * 0.05 + phase * 1.3)) * 0.35;
 
-        float twinkle = mix(0.35 + 0.65 * (0.5 + 0.5 * sin(uTime * (0.8 + fract(phase) * 2.2) + phase)), 1.0, kind);
-        vColor = color;
-        vAlpha = mix(twinkle * (0.45 + depth * 0.55), 0.16, kind);
+        vec4 mvPosition = modelViewMatrix * vec4(p, 1.0);
+        float depth = -mvPosition.z;
+
+        float twinkle = 0.35 + 0.65 * (0.5 + 0.5 * sin(uTime * (0.8 + fract(phase) * 2.2) + phase));
+        vColor = pow(color, vec3(2.2)); // sRGB → linear
+        vAlpha = mix(twinkle * clamp(1.6 - depth / 60.0, 0.25, 1.0), 0.11, kind);
         vKind = kind;
 
-        gl_PointSize = size * uScale;
-        gl_Position = vec4(p, 0.0, 1.0);
+        gl_PointSize = size * uScale * (10.0 / depth);
+        gl_Position = projectionMatrix * mvPosition;
       }
     `,
     fragmentShader: /* glsl */ `
@@ -90,13 +89,12 @@ export function createStarfield({ stars = 1400, dust = 70 } = {}) {
         if (d > 1.0) discard;
         float star = smoothstep(1.0, 0.0, d);
         star *= star;
-        float bokeh = smoothstep(1.0, 0.75, d);
+        float bokeh = smoothstep(1.0, 0.7, d) * (0.75 + 0.25 * d);
         float shape = mix(star, bokeh, vKind);
-        gl_FragColor = vec4(vColor, shape * vAlpha * uOpacity);
+        gl_FragColor = vec4(vColor * (1.0 + (1.0 - vKind) * 0.6), shape * vAlpha * uOpacity);
       }
     `,
     transparent: true,
-    depthTest: false,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
   });
@@ -110,9 +108,8 @@ export function createStarfield({ stars = 1400, dust = 70 } = {}) {
     resize({ pixelRatio }) {
       material.uniforms.uScale.value = pixelRatio;
     },
-    update(time, { pointer, intro }) {
+    update(time, { intro }) {
       material.uniforms.uTime.value = time;
-      material.uniforms.uPointer.value.copy(pointer);
       material.uniforms.uOpacity.value = intro;
     },
   };

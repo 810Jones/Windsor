@@ -50,8 +50,10 @@ export function createConstellation() {
   const index = Object.fromEntries(ids.map((id, i) => [id, i]));
   const visible = ids.filter((id) => !NODES[id].hidden);
 
-  const base = ids.map(() => new THREE.Vector2());
-  const current = ids.map(() => new THREE.Vector2());
+  const base = ids.map(() => new THREE.Vector3());
+  const current = ids.map(() => new THREE.Vector3());
+  // Push nodes onto different depth layers so the network reads as 3D.
+  const depth = ids.map((id, i) => (id === 'compass' ? 0 : -2.6 + ((i * 0.618) % 1) * 3.2));
   const drift = ids.map(() => ({
     phase: Math.random() * Math.PI * 2,
     speed: 0.15 + Math.random() * 0.2,
@@ -65,7 +67,6 @@ export function createConstellation() {
     color: 0x7d8fc4,
     transparent: true,
     opacity: 0,
-    depthTest: false,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
   });
@@ -89,7 +90,7 @@ export function createConstellation() {
     'phase',
     new THREE.BufferAttribute(new Float32Array(visible.map(() => Math.random() * Math.PI * 2)), 1),
   );
-  const nodeMaterial = createGlowMaterial({ twinkle: 0.25 });
+  const nodeMaterial = createGlowMaterial({ twinkle: 0.25, intensity: 1.6 });
   const nodes = new THREE.Points(nodeGeometry, nodeMaterial);
   nodes.frustumCulled = false;
   nodes.renderOrder = 2;
@@ -104,7 +105,7 @@ export function createConstellation() {
   );
   signalGeometry.setAttribute('size', new THREE.BufferAttribute(new Float32Array(SIGNAL_COUNT).fill(10), 1));
   signalGeometry.setAttribute('phase', new THREE.BufferAttribute(new Float32Array(SIGNAL_COUNT), 1));
-  const signalMaterial = createGlowMaterial({ twinkle: 0 });
+  const signalMaterial = createGlowMaterial({ twinkle: 0, intensity: 2.2 });
   const signals = new THREE.Points(signalGeometry, signalMaterial);
   signals.frustumCulled = false;
   signals.renderOrder = 3;
@@ -134,10 +135,12 @@ export function createConstellation() {
     resize(layout, { pixelRatio, pointScale, compassCenter }) {
       ids.forEach((id, i) => {
         if (id === 'compass') {
-          base[i].copy(compassCenter);
+          base[i].set(compassCenter.x, compassCenter.y, 0);
         } else {
           layout.toWorld(...NODES[id].at, point);
-          base[i].set(point.x, point.y);
+          // Scale x/y with depth so each node still lands on its traced screen spot.
+          const k = (layout.distance - depth[i]) / layout.distance;
+          base[i].set(point.x * k, point.y * k, depth[i]);
         }
       });
       nodeMaterial.uniforms.uScale.value = pixelRatio * pointScale;
@@ -147,17 +150,12 @@ export function createConstellation() {
 
     driftAmount: 0,
 
-    update(time, { delta, intro, pointer, motion }) {
+    update(time, { delta, intro, motion }) {
       elapsed += delta;
-
-      const offsetX = -pointer.x * this.driftAmount * 6;
-      const offsetY = -pointer.y * this.driftAmount * 6;
-      group.position.set(offsetX, offsetY, 0);
 
       ids.forEach((id, i) => {
         if (id === 'compass') {
-          // The compass doesn't parallax, so cancel the group offset for it.
-          current[i].set(base[i].x - offsetX, base[i].y - offsetY);
+          current[i].copy(base[i]);
           return;
         }
         const { phase, speed } = drift[i];
@@ -165,19 +163,20 @@ export function createConstellation() {
         current[i].set(
           base[i].x + Math.sin(time * speed + phase) * amount,
           base[i].y + Math.cos(time * speed * 0.8 + phase) * amount,
+          base[i].z + Math.sin(time * speed * 0.6 + phase) * amount * 4,
         );
       });
 
       EDGES.forEach(([from, to], e) => {
         const a = current[index[from]];
         const b = current[index[to]];
-        linePositions.set([a.x, a.y, 0, b.x, b.y, 0], e * 6);
+        linePositions.set([a.x, a.y, a.z, b.x, b.y, b.z], e * 6);
       });
       lineGeometry.attributes.position.needsUpdate = true;
 
       visible.forEach((id, v) => {
         const p = current[index[id]];
-        nodePositions.set([p.x, p.y, 0], v * 3);
+        nodePositions.set([p.x, p.y, p.z], v * 3);
       });
       nodeGeometry.attributes.position.needsUpdate = true;
 
@@ -191,7 +190,7 @@ export function createConstellation() {
         const a = current[signal.from];
         const b = current[signal.to];
         const k = THREE.MathUtils.clamp(t, 0, 1);
-        signalPositions.set([a.x + (b.x - a.x) * k, a.y + (b.y - a.y) * k, 0], s * 3);
+        signalPositions.set([a.x + (b.x - a.x) * k, a.y + (b.y - a.y) * k, a.z + (b.z - a.z) * k], s * 3);
         // Fade in/out at the ends of each trip.
         signalGeometry.attributes.size.array[s] = t <= 0 ? 0 : 10 * Math.sin(Math.PI * k);
       });
@@ -201,7 +200,7 @@ export function createConstellation() {
       nodeMaterial.uniforms.uTime.value = time;
       nodeMaterial.uniforms.uOpacity.value = intro;
       signalMaterial.uniforms.uOpacity.value = intro * motion;
-      lineMaterial.opacity = 0.34 * intro;
+      lineMaterial.opacity = 0.4 * intro;
     },
   };
 }

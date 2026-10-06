@@ -16,12 +16,15 @@ npm run preview  # serve the production build
 An animated three.js version of the Social Solace "ReThink 2.0 / GPS Navigator 2.0" splash screen.
 
 - `rethink/index.html` – page markup; the wordmark is HTML/CSS layered over the WebGL canvas
-- `rethink/src/main.js` – renderer, camera, resize handling, pointer input, animation loop
+- `rethink/src/main.js` – renderer, tone mapping, environment lighting, bloom post-processing,
+  camera fly-in, pointer-driven world tilt, animation loop
 - `rethink/src/scene/`
-  - `starfield.js` – twinkling stars and drifting bokeh dust (clip-space shader, pointer parallax)
-  - `constellation.js` – network of glowing nodes and lines, with signals travelling along edges
-  - `icons.js` – floating line-art icons (brain, bolt, chart, …) drawn to canvas textures
-  - `compass.js` – the central compass; the needle spins in on load and follows the pointer
+  - `nebula.js` – full-screen animated fbm nebula background
+  - `starfield.js` – a deep 3D volume of twinkling stars and drifting dust (real parallax)
+  - `constellation.js` – glowing nodes on several depth layers, linked by lines, with travelling signals
+  - `icons.js` – line-art icons parsed from SVG into 3D line geometry that turns in space
+  - `compass.js` – 3D compass: metallic gradient bezel, faceted needle, orbiting coloured lights;
+    the needle spins in on load and follows the pointer
   - `layout.js` – maps normalized screen coordinates to world space so the layout fits any aspect
   - `glowPoints.js` – shared glowing point-sprite material
 

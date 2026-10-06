@@ -1,62 +1,28 @@
 import * as THREE from 'three';
+import { SVGLoader } from 'three/addons/loaders/SVGLoader.js';
+import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
+import { LineSegmentsGeometry } from 'three/addons/lines/LineSegmentsGeometry.js';
+import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 
-const TEAL = '#4fe0c4';
-const PURPLE = '#8f74f2';
+const TEAL = new THREE.Color('#4fe0c4');
+const PURPLE = new THREE.Color('#8f74f2');
 
-// Line-art glyphs drawn on a 24×24 grid. Each entry strokes onto a 2D canvas
-// context that has already been scaled to that grid.
+// Line-art glyphs on a 24×24 grid, as SVG markup.
 const GLYPHS = {
-  brain(ctx) {
-    ctx.stroke(new Path2D(
-      'M12 5.5c-1-1.7-3.7-2-5.1-.4-1.3-.1-2.6 1-2.5 2.4-1.4.6-2 2.3-1.2 3.7-.9 1.3-.5 3 .8 3.8' +
-      '.1 1.6 1.6 2.8 3.2 2.4.9 1.2 2.7 1.4 3.8.4' +
-      'M12 5.5c1-1.7 3.7-2 5.1-.4 1.3-.1 2.6 1 2.5 2.4 1.4.6 2 2.3 1.2 3.7.9 1.3.5 3-.8 3.8' +
-      '-.1 1.6-1.6 2.8-3.2 2.4-.9 1.2-2.7 1.4-3.8.4' +
-      'M12 5.5v12.3M8.2 8.8c1 .1 1.8.8 2 1.8M15.8 8.8c-1 .1-1.8.8-2 1.8' +
-      'M7.6 13.4c1-.1 2 .5 2.4 1.4M16.4 13.4c-1-.1-2 .5-2.4 1.4',
-    ));
-  },
-  bolt(ctx) {
-    ctx.stroke(new Path2D('M13.6 2.5 6 13.4h5.6l-1.2 8.1 7.6-11h-5.6z'));
-  },
-  network(ctx) {
-    ctx.stroke(new Path2D('M8 8.8 15.4 6.4M7.6 10.2l3.2 6.2M16.7 8.1l-3.4 8.4'));
-    for (const [x, y] of [[6.6, 9], [17, 6], [12, 18.2]]) {
-      ctx.beginPath();
-      ctx.arc(x, y, 2.1, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-  },
-  compass(ctx) {
-    ctx.beginPath();
-    ctx.arc(12, 12, 9, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.stroke(new Path2D('M15.6 8.4 13.2 13.2 8.4 15.6 10.8 10.8z'));
-  },
-  document(ctx) {
-    ctx.stroke(new Path2D('M6.5 2.8h7.8l3.9 3.9v14.5H6.5zM14.3 2.8v3.9h3.9M9.2 11h5.6M9.2 14h5.6M9.2 17h3'));
-  },
-  chart(ctx) {
-    ctx.stroke(new Path2D('M3.5 3.5v17h17M8 17v-4.5M11.5 17V10M15 17v-5.5M6.5 10.5l4.5-4 3.5 3 5-5'));
-  },
-  chat(ctx) {
-    ctx.stroke(new Path2D(
-      'M5 4.5h14a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2h-8.5L6.5 20.5v-3.5H5a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2z',
-    ));
-    for (const x of [8.5, 12, 15.5]) {
-      ctx.beginPath();
-      ctx.arc(x, 10.8, 0.5, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-  },
-  target(ctx) {
-    for (const r of [8, 4.6, 1.4]) {
-      ctx.beginPath();
-      ctx.arc(12, 12, r, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-    ctx.stroke(new Path2D('M12 1v3M12 20v3M1 12h3M20 12h3'));
-  },
+  brain: `<path d="M12 5.5c-1-1.7-3.7-2-5.1-.4-1.3-.1-2.6 1-2.5 2.4-1.4.6-2 2.3-1.2 3.7-.9 1.3-.5 3 .8 3.8
+    .1 1.6 1.6 2.8 3.2 2.4.9 1.2 2.7 1.4 3.8.4M12 5.5c1-1.7 3.7-2 5.1-.4 1.3-.1 2.6 1 2.5 2.4 1.4.6 2 2.3 1.2 3.7
+    .9 1.3.5 3-.8 3.8-.1 1.6-1.6 2.8-3.2 2.4-.9 1.2-2.7 1.4-3.8.4M12 5.5v12.3M8.2 8.8c1 .1 1.8.8 2 1.8
+    M15.8 8.8c-1 .1-1.8.8-2 1.8M7.6 13.4c1-.1 2 .5 2.4 1.4M16.4 13.4c-1-.1-2 .5-2.4 1.4"/>`,
+  bolt: '<path d="M13.6 2.5 6 13.4h5.6l-1.2 8.1 7.6-11h-5.6z"/>',
+  network: `<path d="M8.6 8.4 15 6.6M7.6 10.9l3.4 5.4M16.4 7.9l-3.6 8.4"/>
+    <circle cx="6.6" cy="9" r="2.1"/><circle cx="17" cy="6" r="2.1"/><circle cx="12" cy="18.2" r="2.1"/>`,
+  compass: '<circle cx="12" cy="12" r="9"/><path d="M15.6 8.4 13.2 13.2 8.4 15.6 10.8 10.8z"/>',
+  document: '<path d="M6.5 2.8h7.8l3.9 3.9v14.5H6.5zM14.3 2.8v3.9h3.9M9.2 11h5.6M9.2 14h5.6M9.2 17h3"/>',
+  chart: '<path d="M3.5 3.5v17h17M8 17v-4.5M11.5 17V10M15 17v-5.5M6.5 10.5l4.5-4 3.5 3 5-5"/>',
+  chat: `<path d="M5 4.5h14a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2h-8.5L6.5 20.5v-3.5H5a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2z"/>
+    <circle cx="8.5" cy="10.8" r=".6"/><circle cx="12" cy="10.8" r=".6"/><circle cx="15.5" cy="10.8" r=".6"/>`,
+  target: `<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.6"/><circle cx="12" cy="12" r="1.4"/>
+    <path d="M12 1v3M12 20v3M1 12h3M20 12h3"/>`,
 };
 
 // Placement in normalized screen space, traced from the splash artwork.
@@ -71,54 +37,56 @@ const ICONS = [
   { glyph: 'target', at: [0.715, 0.895], color: PURPLE, scale: 0.95 },
 ];
 
-function makeTexture(draw, color) {
-  const size = 256;
-  const pad = size * 0.15;
-  const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = size;
-  const ctx = canvas.getContext('2d');
+const loader = new SVGLoader();
 
-  ctx.translate(pad, pad);
-  ctx.scale((size - pad * 2) / 24, (size - pad * 2) / 24);
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.strokeStyle = color;
-  ctx.shadowColor = color;
-
-  // A blurred pass for the glow, then a crisp pass on top.
-  ctx.lineWidth = 1.1;
-  ctx.shadowBlur = 18;
-  draw(ctx);
-  ctx.shadowBlur = 0;
-  draw(ctx);
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = 4;
-  return texture;
+/** Turns a glyph's SVG into line-segment pairs on a unit square centred at the origin. */
+function glyphSegments(markup) {
+  const { paths } = loader.parse(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">${markup}</svg>`);
+  const segments = [];
+  for (const path of paths) {
+    for (const subPath of path.subPaths) {
+      const points = subPath.getPoints(24);
+      for (let i = 1; i < points.length; i++) {
+        const a = points[i - 1];
+        const b = points[i];
+        segments.push((a.x - 12) / 24, (12 - a.y) / 24, 0, (b.x - 12) / 24, (12 - b.y) / 24, 0);
+      }
+    }
+  }
+  return segments;
 }
 
-/** Floating line-art icons that bob and breathe around the constellation. */
+/**
+ * Floating icons built from real 3D line geometry. They sit at different
+ * depths, turn slowly in space, and glow through the bloom pass.
+ */
 export function createIcons() {
   const group = new THREE.Group();
-  const geometry = new THREE.PlaneGeometry(1, 1);
+  const materials = [];
 
-  const items = ICONS.map((icon) => {
-    const material = new THREE.MeshBasicMaterial({
-      map: makeTexture(GLYPHS[icon.glyph], icon.color),
+  const items = ICONS.map((icon, i) => {
+    const geometry = new LineSegmentsGeometry();
+    geometry.setPositions(glyphSegments(GLYPHS[icon.glyph]));
+
+    const material = new LineMaterial({
+      color: icon.color.clone().multiplyScalar(1.5),
+      linewidth: 1.6,
       transparent: true,
       opacity: 0,
-      depthTest: false,
       depthWrite: false,
-      blending: THREE.AdditiveBlending,
     });
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.renderOrder = 4;
-    group.add(mesh);
+    materials.push(material);
+
+    const lines = new LineSegments2(geometry, material);
+    lines.renderOrder = 4;
+    group.add(lines);
+
     return {
       ...icon,
-      mesh,
-      base: new THREE.Vector2(),
+      lines,
+      material,
+      depth: -1.8 + ((i * 0.618 + 0.3) % 1) * 2.6,
+      base: new THREE.Vector3(),
       phase: Math.random() * Math.PI * 2,
       tilt: (Math.random() - 0.5) * 0.3,
     };
@@ -130,27 +98,32 @@ export function createIcons() {
   return {
     object: group,
 
-    resize(layout) {
+    resize(layout, { width, height }) {
       bob = layout.height * 0.006;
       for (const item of items) {
         layout.toWorld(...item.at, point);
-        item.base.set(point.x, point.y);
-        // The glyph fills 70% of its texture, so oversize the plane to match.
-        item.mesh.scale.setScalar((layout.iconSize * item.scale) / 0.7);
+        const k = (layout.distance - item.depth) / layout.distance;
+        item.base.set(point.x * k, point.y * k, item.depth);
+        item.lines.scale.setScalar(layout.iconSize * item.scale * k);
       }
+      // Line widths are in CSS pixels relative to this resolution.
+      for (const material of materials) material.resolution.set(width, height);
     },
 
-    update(time, { intro, pointer, motion }) {
-      group.position.set(-pointer.x * bob * 9, -pointer.y * bob * 9, 0);
+    update(time, { intro, motion }) {
       for (const item of items) {
         const t = time * 0.5 + item.phase;
-        item.mesh.position.set(
+        item.lines.position.set(
           item.base.x + Math.cos(t * 0.7) * bob * 0.5 * motion,
           item.base.y + Math.sin(t) * bob * motion,
-          0,
+          item.base.z,
         );
-        item.mesh.rotation.z = item.tilt + Math.sin(t * 0.6) * 0.06 * motion;
-        item.mesh.material.opacity = intro * (0.65 + 0.25 * Math.sin(t * 1.3));
+        item.lines.rotation.set(
+          Math.sin(t * 0.45) * 0.35 * motion,
+          Math.sin(t * 0.3) * 0.6 * motion,
+          item.tilt + Math.sin(t * 0.6) * 0.06 * motion,
+        );
+        item.material.opacity = intro * (0.7 + 0.25 * Math.sin(t * 1.3));
       }
     },
   };
