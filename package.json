@@ -1,0 +1,21 @@
+{
+  "name": "windsor",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@fontsource/chakra-petch": "^5.3.0",
+    "@fontsource/orbitron": "^5.3.0",
+    "@fontsource/outfit": "^5.2.8",
+    "@fontsource/pacifico": "^5.2.7",
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "vite": "^8.3.3"
+  }
+}

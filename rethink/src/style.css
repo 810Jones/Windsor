@@ -1,0 +1,148 @@
+:root {
+  --bg-deep: #060818;
+  --teal: #4fe0c4;
+  --purple: #8b6cf0;
+  --text: #f4f5fb;
+  --muted: #b9c2c8;
+
+  /* Set from JS so the wordmark always sits just below the 3D compass. */
+  --compass-center-y: 42vh;
+  --compass-radius: 120px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background:
+    radial-gradient(ellipse 70% 45% at 0% 0%, rgba(78, 36, 140, 0.55), transparent 70%),
+    radial-gradient(ellipse 60% 35% at 100% 100%, rgba(32, 120, 120, 0.4), transparent 70%),
+    linear-gradient(180deg, #0b0a24 0%, var(--bg-deep) 45%, #070b1d 100%);
+  background-color: var(--bg-deep);
+  color: var(--text);
+  font-family: 'Outfit', system-ui, sans-serif;
+}
+
+#scene {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.splash {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: calc(var(--compass-center-y) + var(--compass-radius) + clamp(18px, 4vh, 44px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 16px;
+  text-align: center;
+  pointer-events: none;
+  animation: rise 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) 0.5s both;
+}
+
+.eyebrow,
+.subtitle {
+  margin: 0;
+  font-family: 'Chakra Petch', sans-serif;
+  font-weight: 500;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.eyebrow {
+  font-size: clamp(11px, 2.6vw, 18px);
+  letter-spacing: 0.55em;
+  /* Letter-spacing adds trailing space; pull it back so the text stays centred. */
+  margin-right: -0.55em;
+}
+
+.wordmark {
+  display: flex;
+  align-items: baseline;
+  margin: clamp(4px, 1.5vh, 14px) 0 clamp(6px, 1.6vh, 16px);
+  line-height: 1;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.wordmark-re {
+  font-family: 'Pacifico', cursive;
+  font-size: clamp(40px, 14vw, 112px);
+  color: var(--teal);
+  text-shadow: 0 0 24px rgba(79, 224, 196, 0.35);
+  margin-right: 0.04em;
+}
+
+.wordmark-think {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  font-size: clamp(36px, 12vw, 96px);
+  letter-spacing: 0.01em;
+  color: var(--text);
+}
+
+.wordmark-version {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  font-size: clamp(14px, 4.6vw, 36px);
+  color: var(--teal);
+  margin-left: 0.5em;
+}
+
+.subtitle {
+  font-size: clamp(13px, 3.4vw, 24px);
+  letter-spacing: 0.6em;
+  margin-right: -0.6em;
+  color: #d9dde8;
+}
+
+.divider {
+  width: min(42vw, 300px);
+  height: 2px;
+  margin-top: clamp(14px, 3vh, 28px);
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--purple) 30%, #9fd6ff 50%, var(--purple) 70%, transparent);
+  box-shadow: 0 0 12px rgba(139, 108, 240, 0.8);
+  animation: shimmer 4s ease-in-out infinite;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes shimmer {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash,
+  .divider {
+    animation: none;
+  }
+}
